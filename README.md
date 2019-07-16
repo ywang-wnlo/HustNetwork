@@ -1,6 +1,6 @@
 # KeepLogInRuiJie
 
-## Func:
+## Function:
 
 make ruijie always keep log in on Windows
 
@@ -8,8 +8,20 @@ make ruijie always keep log in on Windows
 
 Wireless Network:
 
->python RuiJie_WiFi.py {UserId} {Password}
+```bash
+python RuiJie_WiFi.py {UserId} {Password}
+```
 
-Wired Network:(need run as Administrator)
+Wired Network:(need run as Administrator in Windows)
 
->python RuiJie_Wired.py {file_path of RuijieSupplicant.exe}
+```bash
+python RuiJie_Wired.py [file_path of RuijieSupplicant.exe]
+```
+
+## Linux:
+
+can use .sh Script and crontab
+
+```sh
+echo {sudo password} | sudo -S .sh Script
+```

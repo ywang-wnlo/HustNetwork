@@ -14,7 +14,7 @@ class RuiJie_Wired(object):
         self._file_path = file_path
 
     def _check_status(self):
-        exit_code = os.system('ping baidu.com')
+        exit_code = os.system('ping baidu.com -n 1')
         self._status = False if exit_code else True
         if self._status:
             return
@@ -36,7 +36,10 @@ class RuiJie_Wired(object):
 
 
 if __name__ == "__main__":
-    ruijie = RuiJie_Wired(sys.argv[1])
+    if len(sys.argv) == 2:
+        ruijie = RuiJie_Wired(sys.argv[1])
+    else:
+        ruijie = RuiJie_Wired("C:/Program Files/Ruijie Networks/Ruijie Supplicant/RuijieSupplicant.exe")
     while(True):
         try:
             ruijie.run()
