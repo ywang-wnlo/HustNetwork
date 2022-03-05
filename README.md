@@ -2,26 +2,12 @@
 
 ## Function:
 
-make ruijie always keep log in on Windows
+Make ruijie always keep log in with Web Authentication on Windows/Linux
 
 ## Use:
 
-Wireless Network:
+Wireless/Wired Network:
 
 ```bash
-python RuiJie_WiFi.py {UserId} {Password}
-```
-
-Wired Network:(need run as Administrator in Windows)
-
-```bash
-python RuiJie_Wired.py [file_path of RuijieSupplicant.exe]
-```
-
-## Linux:
-
-can use .sh Script and crontab
-
-```sh
-echo {sudo password} | sudo -S .sh Script
+python3 RuiJie.py {UserId} {Password}
 ```

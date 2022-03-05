@@ -7,17 +7,16 @@ import sys
 import time
 import json
 
-class RuiJie_WiFi(object):
+class RuiJie(object):
     def __init__(self, userId, password):
-        self._test_time = 5 * 60
-        self._reconnection_time = 10
+        self._test_time = 60
         self._status = False
         self._href = None
         self._userId = userId
         self._password = password
 
     def _check_status(self):
-        test_url = "http://www.youdao.com/"
+        test_url = "http://192.168.1.1/"
         page = requests.get(test_url)
         page.encoding = "utf8"
         soup = BeautifulSoup(page.text, "html5lib")
@@ -29,7 +28,7 @@ class RuiJie_WiFi(object):
         print("[Log] [%s]" % (time_string), end=" ")
         print("锐捷掉线，尝试重连", end=" ")
         script = soup.select_one("script")
-        self._href = script.text.split("\'")[1]
+        self._href = script.string.split("\'")[1]
         self._iplink = self._href.split("/eportal/")[0]
 
     def _reconnection(self):
@@ -53,7 +52,7 @@ class RuiJie_WiFi(object):
         body = soup.select_one("body")
         result = json.loads(body.text)
         print(result["result"])
-    
+
     def run(self):
         while(True):
             self._check_status()
@@ -61,11 +60,11 @@ class RuiJie_WiFi(object):
                 time.sleep(self._test_time)
             else:
                 self._reconnection()
-                time.sleep(self._reconnection_time)
+                time.sleep(10)
 
 
 if __name__ == "__main__":
-    ruijie = RuiJie_WiFi(sys.argv[1], sys.argv[2])
+    ruijie = RuiJie(sys.argv[1], sys.argv[2])
     while(True):
         try:
             ruijie.run()
@@ -73,4 +72,3 @@ if __name__ == "__main__":
             time_string = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
             print("[Exception] [%s]" % (time_string), end=" ")
             print(e)
-            
