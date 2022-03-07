@@ -11,14 +11,13 @@ class RuiJie(object):
     def __init__(self, userId, password):
         self._test_time = 60
         self._status = False
-        self._href = None
         self._userId = userId
         self._password = password
 
     def _check_status(self):
-        test_url = "http://192.168.1.1/"
+        test_url = "http://1.1.1.1"
         page = requests.get(test_url)
-        page.encoding = "utf8"
+        # page.encoding = "utf8"
         soup = BeautifulSoup(page.text, "html5lib")
         meta = soup.select_one("head > meta")
         self._status = (meta is not None)
@@ -28,24 +27,25 @@ class RuiJie(object):
         print("[Log] [%s]" % (time_string), end=" ")
         print("锐捷掉线，尝试重连", end=" ")
         script = soup.select_one("script")
-        self._href = script.string.split("\'")[1]
-        self._iplink = self._href.split("/eportal/")[0]
+        self._referer = script.string.split("\'")[1]
+        self._origin = self._referer.split("/eportal/")[0]
 
     def _reconnection(self):
-        url = self._iplink + "/eportal/InterFace.do?method=login"
+        url = self._origin + "/eportal/InterFace.do?method=login"
         data = {
             "userId": self._userId,
             "password": self._password,
             "service": "",
-            "queryString": self._href.split("jsp?")[1],
+            "queryString": self._referer.split("jsp?")[1],
             "operatorPwd": "",
+            "operatorUserId": "",
             "validcode": ""
         }
         headers = {
-            "Host": self._iplink[7:],
-            "Origin": self._iplink,
-            "Referer": self._href,
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.110 Safari/537.36"
+            "Host": self._origin.split("://")[1],
+            "Origin": self._origin,
+            "Referer": self._referer,
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99.0.4844.51 Safari/537.36"
         }
         page = requests.post(url, data=data, headers=headers)
         soup = BeautifulSoup(page.text, "html5lib")
