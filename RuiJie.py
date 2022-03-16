@@ -51,18 +51,17 @@ class RuiJie(object):
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99.0.4844.51 Safari/537.36"
         }
         page = requests.post(url, data=data, headers=headers)
+        page.encoding = page.apparent_encoding
         soup = BeautifulSoup(page.text, "html5lib")
         body = soup.select_one("body")
         result = json.loads(body.text)
-        print(result["result"])
+        print(result["result"], result["message"])
 
     def run(self):
         while(True):
-            if self._check_status():
-                time.sleep(self._test_time)
-            else:
+            time.sleep(self._test_time)
+            if not self._check_status():
                 self._reconnection()
-                time.sleep(10)
 
 
 if __name__ == "__main__":
