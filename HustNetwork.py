@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 import os
@@ -12,16 +12,18 @@ HUST_DNS = "202.114.0.242"
 OTHER_DNS = "223.5.5.5"
 
 class HustNetwork(object):
-    def __init__(self, userId, password):
+    def __init__(self, config_file):
         self._test_time = 60
-        self._userId = userId
-        self._password = password
+        with open(config_file, 'r') as f:
+            self._userId = f.readline().strip()
+            self._password = f.readline().strip()
 
     def _ping(self, host):
         # 利用 ping 判断网络状态
-        cmd = "ping {} 2 {} > ping.log".format(
+        cmd = "ping {} 2 {} > {}ping.log".format(
             "-n" if sys.platform.lower() == "win32" else "-c",
-            host
+            host,
+            "./" if sys.platform.lower() == "win32" else "/tmp/"
         )
         return False if os.system(cmd) else True
 
@@ -78,7 +80,7 @@ class HustNetwork(object):
 
 
 if __name__ == "__main__":
-    hustNetwork = HustNetwork(sys.argv[1], sys.argv[2])
+    hustNetwork = HustNetwork(sys.argv[1])
     while(True):
         try:
             hustNetwork.run()
