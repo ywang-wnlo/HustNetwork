@@ -1,12 +1,13 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-import requests
-from bs4 import BeautifulSoup
 import os
+import re
 import sys
 import time
-import json
+
+import requests
+
 
 class RuiJie(object):
     def __init__(self, userId, password):
@@ -25,36 +26,38 @@ class RuiJie(object):
         return self._ping("202.114.0.242") or self._ping("223.5.5.5")
 
     def _reconnection(self):
-        test_url = "http://192.168.1.1"
-        page = requests.get(test_url)
-        soup = BeautifulSoup(page.text, "html5lib")
         time_string = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
         print("[Log] [%s]" % (time_string), end=" ")
         print("锐捷掉线，尝试重连", end=" ")
-        script = soup.select_one("script")
-        self._referer = script.string.split("\'")[1]
-        self._origin = self._referer.split("/eportal/")[0]
-        url = self._origin + "/eportal/InterFace.do?method=login"
+
+        test_url = "http://192.168.1.1"
+        response = requests.get(test_url)
+        response.encoding = 'utf8'
+
+        href = re.findall(r"href='(.+)'", response.text)
+        referer = href[0]
+        origin = referer.split("/eportal/")[0]
+        url = origin + "/eportal/InterFace.do?method=login"
+
         data = {
             "userId": self._userId,
             "password": self._password,
             "service": "",
-            "queryString": self._referer.split("jsp?")[1],
+            "queryString": referer.split("jsp?")[1],
             "operatorPwd": "",
             "operatorUserId": "",
             "validcode": ""
         }
+
         headers = {
-            "Host": self._origin.split("://")[1],
-            "Origin": self._origin,
-            "Referer": self._referer,
+            "Host": origin.split("://")[1],
+            "Origin": origin,
+            "Referer": referer,
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99.0.4844.51 Safari/537.36"
         }
-        page = requests.post(url, data=data, headers=headers)
-        page.encoding = page.apparent_encoding
-        soup = BeautifulSoup(page.text, "html5lib")
-        body = soup.select_one("body")
-        result = json.loads(body.text)
+        response = requests.post(url, data=data, headers=headers)
+        response.encoding = response.apparent_encoding
+        result = response.json()
         print(result["result"], result["message"])
 
     def run(self):
