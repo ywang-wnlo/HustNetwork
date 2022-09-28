@@ -4,11 +4,11 @@ After=network.target
 
 [Service]
 Type=simple
-User={安装了python的任意用户}
+User={安装了python3环境的任意用户}
 Restart=on-failure
 RestartSec=5s
-ExecStart={HustNetwork.py的绝对路径} {hustNetwork.conf的绝对路径}
-ExecReload={HustNetwork.py的绝对路径} {hustNetwork.conf的绝对路径}
+ExecStart={HustNetwork.py的绝对路径} {hust-network.conf的绝对路径}
+ExecReload={HustNetwork.py的绝对路径} {hust-network.conf的绝对路径}
 LimitNOFILE=1048576
 
 [Install]
