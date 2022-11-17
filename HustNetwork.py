@@ -21,6 +21,11 @@ class HustNetwork(object):
         self._auth_url = None
         self._referer = None
         self._origin = None
+        # 认证过程中不要走系统代理
+        self._proxies = {
+            'http': None,
+            'https': None,
+        }
 
     def _ping(self, host):
         # 利用 ping 判断网络状态
@@ -37,7 +42,7 @@ class HustNetwork(object):
     def _get_auth_url(self):
         # 通过 http 的网站进行跳转
         test_url = "http://192.168.1.1"
-        response = requests.get(test_url)
+        response = requests.get(test_url, proxies=self._proxies)
         response.encoding = 'utf8'
 
         # 获取跳转链接
@@ -72,7 +77,8 @@ class HustNetwork(object):
             "Referer": self._referer,
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99.0.4844.51 Safari/537.36"
         }
-        response = requests.post(self._auth_url, data=data, headers=headers)
+        response = requests.post(
+            self._auth_url, data=data, headers=headers, proxies=self._proxies)
 
         # 打印响应状态
         response.encoding = response.apparent_encoding
