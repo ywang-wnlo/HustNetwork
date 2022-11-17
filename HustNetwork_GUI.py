@@ -6,13 +6,14 @@ import re
 import sys
 import time
 import requests
-import threading
 from PySide6 import QtCore, QtWidgets
 
 
-class HustNetwork(threading.Thread):
+class HustNetwork(QtCore.QThread):
+    status_signal = QtCore.Signal(str)
+    
     def __init__(self, username='', password='', ping_interval=15, ping_dns1='202.114.0.242', ping_dns2='223.5.5.5', config_file=None):
-        threading.Thread.__init__(self)
+        super().__init__()
         if config_file is None:
             self._username = username
             self._password = password
@@ -26,7 +27,6 @@ class HustNetwork(threading.Thread):
                 self._ping_interval = int(f.readline().strip())
                 self._ping_dns1 = f.readline().strip()
                 self._ping_dns2 = f.readline().strip()
-        self._running = True
         self._auth_url = None
         self._referer = None
         self._origin = None
@@ -79,20 +79,21 @@ class HustNetwork(threading.Thread):
         }
         response = requests.post(self._auth_url, data=data, headers=headers)
 
-        # # 打印响应状态
-        # response.encoding = response.apparent_encoding
-        # result = response.json()
-        # print(result["result"], result["message"])
+        # 打印响应状态
+        response.encoding = response.apparent_encoding
+        result = response.json()
+        if result["result"] == 'success':
+            self.status_signal.emit("认证成功！")
+        else:
+            self.status_signal.emit(result["message"])
 
     def run(self):
-        while (self._running):
+        while (True):
             if not self._check_status():
                 self._reconnection()
+            else:
+                self.status_signal.emit("已认证！")
             time.sleep(self._ping_interval)
-
-    def stop(self):
-        self._running = False
-
 
 class HustNetworkGUI(QtWidgets.QWidget):
     def __init__(self):
@@ -106,11 +107,11 @@ class HustNetworkGUI(QtWidgets.QWidget):
         self.layout = QtWidgets.QFormLayout(self)
 
         self.username = QtWidgets.QLineEdit()
-        self.layout.addRow("账号", self.username)
+        self.layout.addRow("校园网账号", self.username)
 
         self.password = QtWidgets.QLineEdit()
         self.password.setEchoMode(QtWidgets.QLineEdit.EchoMode.Password)
-        self.layout.addRow("密码", self.password)
+        self.layout.addRow("校园网密码", self.password)
 
         self.ping_interval = QtWidgets.QLineEdit("15")
         self.layout.addRow("断线重连间隔(s)", self.ping_interval)
@@ -119,6 +120,9 @@ class HustNetworkGUI(QtWidgets.QWidget):
         self.layout.addRow("ping 主机1", self.ping_dns1)
         self.ping_dns2 = QtWidgets.QLineEdit("223.5.5.5")
         self.layout.addRow("ping 主机2", self.ping_dns2)
+
+        self.status = QtWidgets.QLabel("未运行")
+        self.layout.addRow("当前状态", self.status)
 
         self.save_config = QtWidgets.QCheckBox("保存配置")
         self.save_config.setChecked(True)
@@ -136,6 +140,10 @@ class HustNetworkGUI(QtWidgets.QWidget):
                 self.ping_dns2.setText(f.readline().strip())
         except Exception:
             pass
+        
+    @QtCore.Slot()
+    def set_status(self, string: str):
+        self.status.setText(string)
 
     def save_to_confg_file(self):
         if self.save_config.isChecked():
@@ -153,30 +161,29 @@ class HustNetworkGUI(QtWidgets.QWidget):
             self.hustNetwork = HustNetwork(
                 self.username.text(), self.password.text(), self.ping_interval.text(),
                 self.ping_dns1.text(), self.ping_dns2.text())
+        self.hustNetwork.status_signal.connect(self.set_status)
         self.hustNetwork.start()
-
-    def stop_auth_daemon(self):
-        self.hustNetwork.stop()
-        del self.hustNetwork
-        self.hustNetwork = None
 
     @QtCore.Slot()
     def daemon_toggle(self):
-        if self.button.text() == "开启服务":
-            self.showMinimized()
+        if self.hustNetwork is None:
             self.save_to_confg_file()
+            self.set_status("认证中...")
             self.start_auth_daemon()
             self.button.setText("停止服务")
         else:
-            self.stop_auth_daemon()
+            self.hustNetwork.terminate()
+            self.hustNetwork.wait()
+            del self.hustNetwork
+            self.hustNetwork = None
+            self.set_status("未运行")
             self.button.setText("开启服务")
-
 
 if __name__ == "__main__":
     app = QtWidgets.QApplication([])
 
     widget = HustNetworkGUI()
-    widget.resize(250, 160)
+    widget.resize(250, 200)
     widget.show()
 
     sys.exit(app.exec())
