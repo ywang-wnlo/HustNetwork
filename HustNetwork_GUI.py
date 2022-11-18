@@ -6,8 +6,9 @@ import re
 import sys
 import time
 import requests
-from PySide6 import QtCore, QtWidgets
+from PySide6 import QtCore, QtWidgets, QtGui
 
+import rc_icon
 
 class HustNetwork(QtCore.QThread):
     status_signal = QtCore.Signal(str)
@@ -107,7 +108,8 @@ class HustNetworkGUI(QtWidgets.QWidget):
         super().__init__()
         self.hustNetwork = None
 
-        self.setWindowTitle("华科校园网认证")
+        self.setWindowTitle("华科校园网认证服务")
+        self.setWindowIcon(QtGui.QIcon(":/icon/network.png"))
         self.setWindowFlags(QtCore.Qt.WindowType.WindowMinimizeButtonHint |
                             QtCore.Qt.WindowType.WindowCloseButtonHint)
 
@@ -136,6 +138,10 @@ class HustNetworkGUI(QtWidgets.QWidget):
         self.button = QtWidgets.QPushButton("开启服务")
         self.layout.addRow(self.save_config, self.button)
 
+        if QtWidgets.QSystemTrayIcon.isSystemTrayAvailable():
+            self.create_tray_icon()
+            self.tray_icon.show()
+
         self.button.clicked.connect(self.daemon_toggle)
 
         try:
@@ -147,6 +153,48 @@ class HustNetworkGUI(QtWidgets.QWidget):
                 self.ping_dns2.setText(f.readline().strip())
         except Exception:
             pass
+
+    def tray_icon_activated(self, reason: QtWidgets.QSystemTrayIcon.ActivationReason):
+        # 单击、双击均显示主窗口
+        if reason == QtWidgets.QSystemTrayIcon.ActivationReason.DoubleClick:
+            self.showNormal()
+        elif reason == QtWidgets.QSystemTrayIcon.ActivationReason.Trigger:
+            self.showNormal()
+
+    def create_tray_icon(self):
+        self.show_action = QtGui.QAction("显示", self)
+        self.show_action.triggered.connect(self.showNormal)
+
+        self.quit_action = QtGui.QAction("退出", self)
+        self.quit_action.triggered.connect(qApp.quit)
+
+        self.tray_icon_menu = QtWidgets.QMenu(self)
+        self.tray_icon_menu.addAction(self.show_action)
+        self.tray_icon_menu.addSeparator()
+        self.tray_icon_menu.addAction(self.quit_action)
+
+        self.tray_icon = QtWidgets.QSystemTrayIcon(
+            QtGui.QIcon(":/icon/network.png"), self)
+        self.tray_icon.setContextMenu(self.tray_icon_menu)
+        self.tray_icon.setToolTip("华科校园网认证服务")
+
+        self.tray_icon.activated.connect(self.tray_icon_activated)
+
+    def closeEvent(self, event):
+        # 服务运行后关闭时隐藏
+        if not event.spontaneous() or not self.isVisible():
+            return
+        if self.hustNetwork and QtWidgets.QSystemTrayIcon.isSystemTrayAvailable() and self.tray_icon.isVisible():
+            self.hide()
+            self.tray_icon.showMessage("华科校园网认证服务", "隐藏至系统托盘")
+            event.ignore()
+
+    def changeEvent(self, event):
+        # 服务运行后最小化时隐藏
+        if self.hustNetwork and self.windowState() == QtCore.Qt.WindowState.WindowMinimized:
+            self.hide()
+            self.tray_icon.showMessage("华科校园网认证服务", "隐藏至系统托盘")
+        QtWidgets.QWidget.changeEvent(self, event)
 
     @QtCore.Slot()
     def set_status(self, string: str):
@@ -189,6 +237,10 @@ class HustNetworkGUI(QtWidgets.QWidget):
 
 if __name__ == "__main__":
     app = QtWidgets.QApplication([])
+
+    if not QtWidgets.QSystemTrayIcon.isSystemTrayAvailable():
+        QtWidgets.QMessageBox.critical(
+            None, "华科校园网认证服务", "该系统上不支持隐藏至系统托盘\n如需断线重连功能，认证完成后请勿关闭本程序")
 
     widget = HustNetworkGUI()
     widget.resize(250, 200)
