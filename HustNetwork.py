@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import os
 import re
 import sys
 import time
+import subprocess
 
 import requests
 
@@ -30,10 +30,12 @@ class HustNetwork(object):
     def _ping(self, host):
         # 利用 ping 判断网络状态
         if sys.platform.lower() == "win32":
-            cmd = f"ping -n 2 -w 1000 {host} > .ping-log"
+            cmd = f"ping -n 2 -w 1000 {host}"
         else:
-            cmd = f"ping -c 2 -W 1 {host} > /tmp/ping-log"
-        return False if os.system(cmd) else True
+            cmd = f"ping -c 2 -W 1 {host}"
+        args = cmd.split(' ')
+        th = subprocess.Popen(args, shell=True)
+        return (th.wait() == 0)
 
     def _check_status(self):
         # 依次 ping 校园网 DNS 和 阿里云 DNS
