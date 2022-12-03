@@ -4,13 +4,21 @@
 import os
 import re
 import sys
+import stat
 import time
+import shutil
 import subprocess
 
 import requests
 from PySide6 import QtCore, QtWidgets, QtGui
 
 import rc_icon
+
+
+def remove_readonly(func, path, _):
+    "Clear the readonly bit and reattempt the removal"
+    os.chmod(path, stat.S_IWRITE)
+    func(path)
 
 
 class HustNetwork(QtCore.QThread):
@@ -158,7 +166,7 @@ class HustNetworkGUI(QtWidgets.QWidget):
                 self.ping_dns2.setText(f.readline().strip())
         except Exception:
             pass
-        
+
         # 删除旧的 _MEIxxxxxx 文件夹
         cur_dir = os.path.dirname(sys.argv[0])
         mei_dirs = {}
@@ -172,7 +180,7 @@ class HustNetworkGUI(QtWidgets.QWidget):
                     max_ctime = max(max_ctime, cur_ctime)
         for ctime in mei_dirs:
             if ctime != max_ctime:
-                os.removedirs(mei_dirs[ctime])
+                shutil.rmtree(mei_dirs[ctime], onerror=remove_readonly)
 
     def tray_icon_activated(self, reason: QtWidgets.QSystemTrayIcon.ActivationReason):
         # 单击、双击均显示主窗口
