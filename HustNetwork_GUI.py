@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+import os
 import re
 import sys
 import time
@@ -157,6 +158,21 @@ class HustNetworkGUI(QtWidgets.QWidget):
                 self.ping_dns2.setText(f.readline().strip())
         except Exception:
             pass
+        
+        # 删除旧的 _MEIxxxxxx 文件夹
+        cur_dir = os.path.dirname(sys.argv[0])
+        mei_dirs = {}
+        max_ctime = 0
+        for file_name in os.listdir(cur_dir):
+            if '_MEI' in file_name:
+                mei_dir = os.path.join(cur_dir, file_name)
+                if os.path.isdir(mei_dir):
+                    cur_ctime = os.path.getctime(mei_dir)
+                    mei_dirs[cur_ctime] = mei_dir
+                    max_ctime = max(max_ctime, cur_ctime)
+        for ctime in mei_dirs:
+            if ctime != max_ctime:
+                os.removedirs(mei_dirs[ctime])
 
     def tray_icon_activated(self, reason: QtWidgets.QSystemTrayIcon.ActivationReason):
         # 单击、双击均显示主窗口
