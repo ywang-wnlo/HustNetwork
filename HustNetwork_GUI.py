@@ -109,7 +109,13 @@ class HustNetwork(QtCore.QThread):
 
     def run(self):
         while (True):
-            if not self._check_status():
+            try:
+                ping_status = self._check_status()
+            except Exception:
+                self.status_signal.emit("网络异常！请检查网线接口连接情况")
+                time.sleep(5)
+                continue
+            if not ping_status:
                 self._reconnection()
             else:
                 self.status_signal.emit("已认证！")
