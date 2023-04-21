@@ -11,7 +11,7 @@ import subprocess
 
 import requests
 from PySide6 import QtCore, QtWidgets, QtGui
-
+import configparser
 import rc_icon
 
 
@@ -24,21 +24,20 @@ def remove_readonly(func, path, _):
 class HustNetwork(QtCore.QThread):
     status_signal = QtCore.Signal(str)
 
-    def __init__(self, username='', password='', ping_interval=15, ping_dns1='202.114.0.242', ping_dns2='223.5.5.5', config_file=None):
+    def __init__(self, username='', password='', ping_interval=15, ping_dns1='202.114.0.242', ping_dns2='223.5.5.5', config=None):
         super().__init__()
-        if config_file is None:
+        if config is None:
             self._username = username
             self._password = password
             self._ping_interval = ping_interval
             self._ping_dns1 = ping_dns1
             self._ping_dns2 = ping_dns2
         else:
-            with open(config_file, 'r') as f:
-                self._username = f.readline().strip()
-                self._password = f.readline().strip()
-                self._ping_interval = int(f.readline().strip())
-                self._ping_dns1 = f.readline().strip()
-                self._ping_dns2 = f.readline().strip()
+            self._username = config.get('network', 'username')
+            self._password = config.get('network', 'password')
+            self._ping_interval = config.getint('network', 'ping_interval')
+            self._ping_dns1 = config.get('network', 'ping_dns1')
+            self._ping_dns2 = config.get('network', 'ping_dns2')
         self._auth_url = None
         self._referer = None
         self._origin = None
@@ -163,15 +162,23 @@ class HustNetworkGUI(QtWidgets.QWidget):
 
         self.button.clicked.connect(self.daemon_toggle)
 
-        try:
-            with open('.config', 'r') as f:
-                self.username.setText(f.readline().strip())
-                self.password.setText(f.readline().strip())
-                self.ping_interval.setText(f.readline().strip())
-                self.ping_dns1.setText(f.readline().strip())
-                self.ping_dns2.setText(f.readline().strip())
-        except Exception:
-            pass
+        self.config = configparser.ConfigParser()
+        if os.path.exists("config.ini"):
+            self.config.read("config.ini")  # 读取配置文件
+            self.username.setText(self.config.get('network', 'username'))
+            self.password.setText(self.config.get('network', 'password'))
+            self.ping_interval.setText(
+                self.config.get('network', 'ping_interval'))
+            self.ping_dns1.setText(self.config.get('network', 'ping_dns1'))
+            self.ping_dns2.setText(self.config.get('network', 'ping_dns2'))
+        else:
+            self.config['network'] = {
+                'username': '',
+                'password': '',
+                'ping_interval': '',
+                'ping_dns1': ''}
+            with open('config.ini', 'w') as f:
+                self.config.write(f)
 
         # 删除旧的 _MEIxxxxxx 文件夹
         cur_dir = os.path.dirname(sys.argv[0])
@@ -236,19 +243,21 @@ class HustNetworkGUI(QtWidgets.QWidget):
 
     def save_to_confg_file(self):
         if self.save_config.isChecked():
-            with open('.config', 'w') as f:
-                f.write(self.username.text() + '\n')
-                f.write(self.password.text() + '\n')
-                f.write(self.ping_interval.text() + '\n')
-                f.write(self.ping_dns1.text() + '\n')
-                f.write(self.ping_dns2.text() + '\n')
+            self.config['network'] = {
+                'username': self.username.text(),
+                'password': self.password.text(),
+                'ping_interval': self.ping_interval.text(),
+                'ping_dns1': self.ping_dns1.text(),
+                'ping_dns2': self.ping_dns2.text()}
+            with open('config.ini', 'w') as f:
+                self.config.write(f)
 
     def start_auth_daemon(self):
         if self.save_config.isChecked():
-            self.hustNetwork = HustNetwork(config_file='.config')
+            self.hustNetwork = HustNetwork(config=self.config)
         else:
             self.hustNetwork = HustNetwork(
-                self.username.text(), self.password.text(), self.ping_interval.text(),
+                self.username.text(), self.password.text(), int(self.ping_interval.text()),
                 self.ping_dns1.text(), self.ping_dns2.text())
         self.hustNetwork.status_signal.connect(self.set_status)
         self.hustNetwork.start()
