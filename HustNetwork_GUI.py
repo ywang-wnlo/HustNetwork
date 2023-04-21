@@ -128,6 +128,7 @@ class HustNetworkGUI(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()
         self.hustNetwork = None
+        self.tray_msg = None
 
         self.setWindowTitle("华科校园网认证服务")
         self.setWindowIcon(QtGui.QIcon(":/icon/network.png"))
@@ -236,19 +237,25 @@ class HustNetworkGUI(QtWidgets.QWidget):
             return
         if self.hustNetwork and QtWidgets.QSystemTrayIcon.isSystemTrayAvailable() and self.tray_icon.isVisible():
             self.hide()
-            self.tray_icon.showMessage("华科校园网认证服务", "隐藏至系统托盘")
+            self.tray_info("隐藏至系统托盘")
             event.ignore()
 
     def changeEvent(self, event):
         # 服务运行后最小化时隐藏
         if self.hustNetwork and self.windowState() == QtCore.Qt.WindowState.WindowMinimized:
             self.hide()
-            self.tray_icon.showMessage("华科校园网认证服务", "隐藏至系统托盘")
+            self.tray_info("隐藏至系统托盘")
         QtWidgets.QWidget.changeEvent(self, event)
 
     @QtCore.Slot()
     def set_status(self, string: str):
         self.status.setText(string)
+
+    @QtCore.Slot()
+    def tray_info(self, string: str):
+        if self.tray_msg != string:
+            self.tray_msg = string
+            self.tray_icon.showMessage("华科校园网认证服务", string)
 
     def save_to_confg_file(self):
         if self.save_config.isChecked():
@@ -271,6 +278,7 @@ class HustNetworkGUI(QtWidgets.QWidget):
                 self.username.text(), self.password.text(), int(self.ping_interval.text()),
                 self.ping_dns1.text(), self.ping_dns2.text())
         self.hustNetwork.status_signal.connect(self.set_status)
+        self.hustNetwork.status_signal.connect(self.tray_info)
         self.hustNetwork.start()
 
     @QtCore.Slot()
