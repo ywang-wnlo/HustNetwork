@@ -156,8 +156,11 @@ class HustNetworkGUI(QtWidgets.QWidget):
 
         self.save_config = QtWidgets.QCheckBox("保存配置")
         self.save_config.setChecked(True)
+        self.silent_start = QtWidgets.QCheckBox("静默启动")
+        self.silent_start.setChecked(False)
         self.button = QtWidgets.QPushButton("开启服务")
-        self.layout.addRow(self.save_config, self.button)
+        self.layout.addRow(self.save_config, self.silent_start)
+        self.layout.addRow(self.button)
 
         if QtWidgets.QSystemTrayIcon.isSystemTrayAvailable():
             self.create_tray_icon()
@@ -174,12 +177,15 @@ class HustNetworkGUI(QtWidgets.QWidget):
                 self.config.get('network', 'ping_interval'))
             self.ping_dns1.setText(self.config.get('network', 'ping_dns1'))
             self.ping_dns2.setText(self.config.get('network', 'ping_dns2'))
+            self.silent_start.setChecked(
+                self.config.getboolean('normal', 'silent_start'))
         else:
             self.config['network'] = {
                 'username': '',
                 'password': '',
                 'ping_interval': '',
                 'ping_dns1': ''}
+            self.config['normal'] = {'silent_start': ''}
             with open('config.ini', 'w') as f:
                 self.config.write(f)
 
@@ -252,6 +258,8 @@ class HustNetworkGUI(QtWidgets.QWidget):
                 'ping_interval': self.ping_interval.text(),
                 'ping_dns1': self.ping_dns1.text(),
                 'ping_dns2': self.ping_dns2.text()}
+            self.config['normal'] = {
+                'silent_start': str(self.silent_start.isChecked())}
             with open('config.ini', 'w') as f:
                 self.config.write(f)
 
@@ -290,6 +298,10 @@ if __name__ == "__main__":
 
     widget = HustNetworkGUI()
     widget.resize(250, 200)
-    widget.show()
+    if widget.silent_start.isChecked():
+        widget.hide()
+        widget.daemon_toggle()
+    else:
+        widget.show()
 
     sys.exit(app.exec())
