@@ -115,7 +115,10 @@ class HustNetwork(QtCore.QThread):
                 time.sleep(5)
                 continue
             if not ping_status:
-                self._reconnection()
+                try:
+                    self._reconnection()
+                except Exception:
+                    self.status_signal.emit("连接失败！")
             else:
                 self.status_signal.emit("已认证！")
             time.sleep(self._ping_interval)
