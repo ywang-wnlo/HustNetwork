@@ -63,7 +63,7 @@ class HustNetwork(QtCore.QThread):
 
     def _get_auth_url(self):
         # 通过 http 的网站进行跳转
-        test_url = "http://www.baidu.com"
+        test_url = "http://1.1.1.1"
         response = requests.get(test_url, proxies=self._proxies)
         response.encoding = 'utf8'
 
