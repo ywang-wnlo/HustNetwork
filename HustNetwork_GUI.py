@@ -54,7 +54,7 @@ class HustNetwork(QtCore.QThread):
         else:
             cmd = f"ping -c 2 -W 1 {host}"
         args = cmd.split(' ')
-        th = subprocess.Popen(args, shell=True)
+        th = subprocess.Popen(args, stdout=subprocess.DEVNULL)
         return (th.wait() == 0)
 
     def _check_status(self):
