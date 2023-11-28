@@ -6,6 +6,7 @@ import re
 import sys
 import stat
 import time
+import math
 import shutil
 import subprocess
 
@@ -46,6 +47,7 @@ class HustNetwork(QtCore.QThread):
             'http': None,
             'https': None,
         }
+        self._encrypted_password = None
 
     def _ping(self, host):
         # 利用 ping 判断网络状态
@@ -73,6 +75,43 @@ class HustNetwork(QtCore.QThread):
         self._origin = self._referer.split("/eportal/")[0]
         self._auth_url = self._origin + "/eportal/InterFace.do?method=login"
 
+    def _password_encrypt(self):
+        page_info_url = self._origin + "/eportal/InterFace.do?method=pageInfo"
+        data = {
+            "queryString": self._referer
+        }
+        response = requests.post(
+            page_info_url, data=data, proxies=self._proxies)
+        response.encoding = 'utf8'
+        result = response.json()
+
+        self._publicKey_exponent = result["publicKeyExponent"]
+        self._publicKey_modulus = result["publicKeyModulus"]
+        return result["passwordEncrypt"]
+
+    # 加密的模拟来源于
+    # 1. https://blog.csdn.net/Kreeda/article/details/117965385
+    # 2. https://www.cnblogs.com/himax/p/python_rsa_no_padding.html
+    def _get_encrypted_password(self):
+        if self._encrypted_password is None:
+            # 加上通用的 mac string
+            self._encrypted_password = self._password + ">111111111"
+            e = int(self._publicKey_exponent, 16)
+            m = int(self._publicKey_modulus, 16)
+            # 16进制转10进制
+            t = self._encrypted_password.encode('utf-8')
+            # 字符串逆向并转换为bytes
+            input_nr = int.from_bytes(t, byteorder='big')
+            # 将字节转化成int型数字，如果没有标明进制，看做ascii码值
+            crypt_nr = pow(input_nr, e, m)
+            # 计算x的y次方，如果z在存在，则再对结果进行取模，其结果等效于pow(x,y) %z
+            length = math.ceil(m.bit_length() / 8)
+            # 取模数的比特长度(二进制长度)，除以8将比特转为字节
+            crypt_data = crypt_nr.to_bytes(length, byteorder='big')
+            # 将密文转换为bytes存储(8字节)，返回hex(16字节)
+            self._encrypted_password = crypt_data.hex()
+        return self._encrypted_password
+
     def _reconnection(self):
         if self._auth_url is None:
             self._get_auth_url()
@@ -85,8 +124,12 @@ class HustNetwork(QtCore.QThread):
             "queryString": self._referer.split("jsp?")[1],
             "operatorPwd": "",
             "operatorUserId": "",
-            "validcode": ""
+            "validcode": "",
+            "passwordEncrypt": ""
         }
+        if self._password_encrypt():
+            data["password"] = self._get_encrypted_password()
+            data["passwordEncrypt"] = "true"
 
         # 校园网认证
         headers = {
