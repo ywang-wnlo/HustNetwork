@@ -33,10 +33,12 @@ class HustNetwork(object):
         # 利用 ping 判断网络状态
         if sys.platform.lower() == "win32":
             cmd = f"ping -n 2 -w 1000 {host}"
+            creation_flags = subprocess.CREATE_NO_WINDOW
         else:
             cmd = f"ping -c 2 -W 1 {host}"
+            creation_flags = 0
         args = cmd.split(' ')
-        th = subprocess.Popen(args, stdout=subprocess.DEVNULL)
+        th = subprocess.Popen(args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, creationflags=creation_flags)
         return (th.wait() == 0)
 
     def _check_status(self):
